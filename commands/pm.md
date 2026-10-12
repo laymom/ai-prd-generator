@@ -1,228 +1,267 @@
 ---
-description: 막연한 아이디어를 4단계 게이트로 PRD화 (요구사항·유저스토리·수용조건). AI 기능이면 AI 5블록 부록 자동 첨부. 설계·계획 단계로 핸드오프.
-argument-hint: [한 줄 아이디어 또는 비워두기]
+description: Turn a vague idea into a PRD through 4 gated stages (requirements, scope, non-goals, user stories, acceptance criteria), or a one-shot draft on request. Appends an AI-feature appendix only when an LLM or ML model is actually used. Hands off to architecture, planning, or design steps.
+argument-hint: "[one-line idea, or leave empty]"
 ---
 
-# /pm — 제품 요구사항 정리 (PRD 생성)
+# /pm — AI-Aware PRD Generator
 
-막연한 아이디어를 **WHAT/WHY 관점의 PRD**로 변환한다. HOW는 설계·계획 단계(architecture·planning)로 넘긴다.
+Turn a vague idea into a **PRD focused on WHAT and WHY** (problem, users, scope, non-goals, user stories, acceptance criteria). HOW (architecture, implementation planning, design) is handed off to later steps.
 
-## 핵심 원칙
+Write questions and the PRD in the language the user writes in.
 
-- **4단계 게이트** — 각 단계 끝에서 사용자가 명시 OK 하기 전엔 다음 단계 진입 금지
-- **소폭 파고들기** — 사용자가 "모르겠어"·"다음에"라고 해도 둘~셋 질문 더 던지고, 그래도 안 답하면 "잠정 추정으로 메워둘게요" 라벨링 후 진행
-- **병렬 서브에이전트** — (환경이 서브에이전트를 지원하면) 인테이크·핸드오프 단계에서 백그라운드 리서치 동시 진행. 지원하지 않으면 이 부분은 건너뛰고 대화 안에서 순서대로 진행
-- **추측·짐작 라벨링** — 어시스턴트 추정은 사용자 언어에 맞춘 라벨로 표시(영어면 "(assumption)", 한국어면 "(가정)"), 사실(사용자 답변·코드·문서)과 분리
+## Core principles
 
----
+- **4 gated stages** — at the end of each stage, do not move to the next stage until the user explicitly approves (in staged mode; see "Two modes").
+- **Ask only what is missing** — do not re-ask anything the user already gave (problem, target users, constraints, and so on). Ask only for missing core context, batched into one short message.
+- **Never press** — if the user says "I don't know", "you decide", or "later", do not ask follow-ups on that point. Record it as an `AI assumption` or an `Open question` and move on.
+- **Parallel subagents (optional)** — if the environment supports subagents, run background research during intake and handoff. If it does not, skip this and do everything sequentially in the conversation.
+- **Evidence labels** — every claim in the PRD carries one of the 7 labels below. Keep the assistant's guesses separate from facts (user answers, code, documents).
 
-## 실행 절차
+## Evidence labels
 
-### Stage 1 — Discovery (문제·사용자·왜 지금)
+Use these exact label names. Keep them in English even when the PRD is written in another language (a translation in parentheses is fine), so labels survive handoff between tools.
 
-사용자에게 다음 5~7개 질문을 한 번에 던진다 (AskUserQuestion 도구가 있으면 활용, 없으면 일반 텍스트로 질문):
+| Label | Use for |
+|---|---|
+| `User-provided fact` | Something the user stated about their situation, data, or constraints |
+| `Sourced fact` | A fact from a document, code, or web page — always include the link or file path |
+| `Real user research` | Observations, quotes, interviews, reviews, logs, or data from real people |
+| `AI assumption` | Anything the assistant inferred, proposed, or filled in without confirmation |
+| `Synthetic persona response` | Output from simulated personas (for example a synthetic focus group). Never evidence; it goes under "Hypotheses to validate" |
+| `Approved decision` | A specific choice the user explicitly approved |
+| `Open question` | Something not yet decided or not yet known |
 
-1. **문제** — 어떤 문제·불편을 풀고 싶어요? (현재 상태 vs 원하는 상태)
-2. **타깃 사용자** — 누가 이걸 써요? (본인? 팀? 외부 고객?)
-3. **왜 지금** — 지금 이 문제를 푸는 트리거가 뭐예요? (기한·이벤트·계기)
-4. **현재 대안** — 지금은 어떻게 처리해요? (수동? 다른 도구? 미해결?)
-5. **참고 사례** — 비슷한 서비스·기능 본 적 있어요? (있으면 링크·이름)
-6. **제약** — 절대 안 되는 거 있어요? (예산·시간·기술·보안)
-7. **(선택) 한 줄 비전** — 완성되면 어떤 모습이길 원해요?
+Rules:
+- An AI-proposed item becomes `Approved decision` only when the user explicitly confirmed that specific item. Approving a stage in general does not turn proposed numbers (metric targets, launch steps, rollback thresholds) into approved decisions — those stay `AI assumption` until the user confirms the value.
+- "Users will probably want this" is not evidence. Label it `AI assumption`.
+- `Synthetic persona response` is never placed under "Discovery evidence". It goes under "Hypotheses to validate", together with how it could be checked with real users.
 
-**동시 진행 (백그라운드 서브에이전트를 쓸 수 있으면)** — 없으면 이 단계는 건너뛰고, 필요 시 사용자에게 "비슷한 기능·사례 조사를 따로 해볼까요?"라고 텍스트로 제안:
-- 코드베이스 스캔 서브에이전트 → 워크스페이스 내 비슷한 기능·코드 스캔 ("이미 있는 거 만들지 말자")
-- (해당 시) 리서치 서브에이전트 → 외부 유사 사례·시장 조사 (격리 컨텍스트, 인용 리포트 반환)
+## Two modes
 
-**추가 산출물**:
-
-- **JTBD 한 줄 (Jobs-to-be-Done)** — 다음 형식으로 가치 가설 명시:
-  > "[사용자]가 [상황]일 때 [Job]을 하려고 한다"
-  > 예: "현장 매니저가 매일 아침일 때 어제 작업 결과를 5초 안에 확인하려고 한다"
-
-- **Discovery Evidence (디스커버리 증거)** — 추측 PRD 방지용. 다음 중 1~2개 인용:
-  - 본인의 실제 경험·관찰 ("내가 이거 매번 손으로 했어")
-  - 동료·사용자 발언 직접 인용
-  - 비슷한 서비스 사용 후기·리뷰 발췌
-  - 데이터·로그 한 줄 (있을 시)
-  ⚠️ "사용자들이 원할 것 같다" 류 추정은 증거가 아님. 증거 없으면 가정 라벨링(영어 "(assumption)" / 한국어 "(가정)").
-
-- **(선택) Discovery 보조 스킬** — 아래 3개 외부 스킬을 게이트 진행 중 발동(설치돼 있으면 자동 연동, 없어도 pm은 작동):
-  - **`opportunity-solution-tree`** (Teresa Torres OST): 사용자가 솔루션 형태로 던졌을 때 발동. outcome → opportunity → solution 트리로 역추적해 솔루션 조기 고정 방지. 다른 solution 후보 1~2개 병기.
-  - **`identify-assumptions-new`** (8축 리스크): 신규 사업·제품 컨셉일 때 발동. Value·Usability·Viability·Feasibility·Ethics·GTM·Strategy·Team 8축으로 위험 가정 식별.
-  - **`prioritize-assumptions`** (Impact × Risk): 위 가정이 식별되면 후속 발동. 매트릭스로 우선순위 + 테스트 실험 제안.
-
-  📌 이 3개 보조 스킬은 [phuryn/pm-skills](https://github.com/phuryn/pm-skills) (MIT License, Paweł Huryn)의 산출물이다. pm 커맨드와 **별개**다. 3개 모두 이 repo의 `pm-product-discovery` 플러그인에 들어 있고, repo README의 Claude Code 설치 명령(`claude plugin marketplace add phuryn/pm-skills` → `claude plugin install pm-product-discovery@pm-skills`)으로 설치하면 연동된다. 미설치 시 이 단계는 건너뛴다.
-
-사용자 답변 + 서브에이전트 결과 + 위 산출물 종합 → **Discovery 요약 1페이지** 출력.
-
-➕ (선택) 체크포인트: (리뷰 서브에이전트를 쓸 수 있으면) 게이트 자가평가(✅/⚠️/🚨) → 결과 함께 사용자 보고 → 게이트로. 없으면 이 단계는 건너뛰고 바로 게이트로
-
-🚪 **GATE 1**: "이 문제 정의·JTBD·증거 이대로 맞아요?" — 명시 OK 받기 전까지 Stage 2 진입 금지.
+- **Staged mode (default)** — the 4 gates below. Wait for explicit approval at each gate.
+- **Draft mode** — use only when the user explicitly asks for a one-shot draft (for example "just write the whole PRD", "give me a full draft", "do it all yourself"). Skip the gate waits and produce all 4 stages in one pass, then save the PRD. Every choice the user has not approved is labeled `AI assumption`, and every unknown is listed as an `Open question`. At the end, list the assumptions that most need the user's confirmation. The user can switch back to staged mode at any time.
+- "You decide" about a single point does not switch modes: fill that point with an `AI assumption` and keep the gates.
 
 ---
 
-### Stage 2 — Scope & Success Criteria (스코프·Non-goals·성공지표)
+## Procedure
 
-Discovery 기반으로 다음 작성:
+### Stage 1 — Discovery (problem, users, why now)
 
-- **In Scope** — 이번에 만들 것 (구체적 기능 리스트)
-- **Non-goals** — 이번엔 안 만들 것 (명시적으로 빼는 것)
-- **성공 기준** — 측정 가능한 지표 (예: "전환율 X%↑", "사용자 30초 이내 완료")
-- **MVP vs Full** — 1차 출시 범위와 후속 단계 분리 (해당 시)
+**Core context checklist.** First read what the user already gave. Then ask only for items that are still missing, in one short batched message (use the AskUserQuestion tool if it exists; otherwise ask in plain text). Do not ask all of these by default — usually 1–3 questions are enough:
 
-⚠️ Non-goals 박는 게 핵심 — 사용자가 "이것도 넣자"를 막는 안전장치. 빠진 게 있으면 어시스턴트가 먼저 "이건 빼는 거 맞죠?" 질문.
+1. **Problem** — what problem or pain to solve (current state vs. desired state)
+2. **Target users** — who will use it (the user themselves? a team? external customers?)
+3. **Why now** — the trigger for solving it now (deadline, event, occasion)
+4. **Current alternative** — how it is handled today (manually? another tool? unsolved?)
+5. **References** — similar services or features they have seen (name or link)
+6. **Constraints** — anything that is absolutely ruled out (budget, time, technology, security)
+7. **(Optional) One-line vision** — what it should look like when done
 
-➕ (선택) 체크포인트: (리뷰 서브에이전트를 쓸 수 있으면) 게이트 자가평가 → 게이트로. 없으면 건너뜀
+Problem, target users, and constraints are the core items. Items 3–7 can be filled later or recorded as `Open question`.
 
-🚪 **GATE 2**: "Non-goals 진짜 빼도 되고, 성공 기준 측정 가능해요?" — OK 받기 전까지 Stage 3 진입 금지.
+**In parallel (only if background subagents are available)** — if not, skip this and, when useful, offer in text: "Shall I research similar features or cases separately?"
+- Codebase scan subagent → scan the workspace for similar features or code ("don't build what already exists")
+- (When relevant) Research subagent → external similar cases and market research (isolated context, returns a cited report; cited facts are labeled `Sourced fact` with links)
+
+**Additional outputs**:
+
+- **JTBD one-liner (Jobs-to-be-Done)** — state the value hypothesis in this format:
+  > "When [situation], [user] wants to [job]"
+  > Example: "When a site manager starts the day, they want to check yesterday's work results within 5 seconds"
+
+- **Discovery evidence** — prevents a guesswork PRD. Cite 1–2 of the following, each labeled:
+  - The user's own experience or observation ("I do this by hand every time") — `User-provided fact`
+  - Direct quotes from colleagues or users — `Real user research`
+  - Excerpts from reviews of similar services — `Real user research` or `Sourced fact` (with link)
+  - A line of data or logs (if available) — `Real user research` or `User-provided fact`
+  ⚠️ Guesses like "users would probably want this" are not evidence. If there is no evidence, say so and label the claim `AI assumption`.
+
+- **Hypotheses to validate** — separate list for `AI assumption` items and any `Synthetic persona response` input (for example output from a synthetic focus group). Never mix these into Discovery evidence. For each, note how it could be checked with real users.
+
+- **(Optional) Discovery helper skills** — the 3 external skills below can be invoked during the stages (used automatically if installed; `/pm` works without them):
+  - **`opportunity-solution-tree`** (Teresa Torres OST): invoke when the user pitched a solution. Work backward through an outcome → opportunity → solution tree to avoid locking in a solution too early. List 1–2 alternative solutions alongside.
+  - **`identify-assumptions-new`** (8 risk categories): invoke for a new business or product concept. Identify risky assumptions across Value, Usability, Viability, Feasibility, Ethics, Go-to-Market, Strategy, and Team.
+  - **`prioritize-assumptions`** (Impact × Risk): invoke after assumptions are identified. Prioritize with the matrix and suggest test experiments.
+
+  📌 These 3 helper skills are from [phuryn/pm-skills](https://github.com/phuryn/pm-skills) (MIT License, Paweł Huryn). They are **separate** from this tool. All 3 are in that repo's `pm-product-discovery` plugin and connect once installed with the Claude Code commands from its README (`claude plugin marketplace add phuryn/pm-skills` → `claude plugin install pm-product-discovery@pm-skills`). If they are not installed, skip this step.
+
+Combine the user's answers, subagent results, and the outputs above → output a **one-page Discovery summary**, with labels.
+
+➕ (Optional) Checkpoint: if a review subagent is available, run a gate self-assessment (✅/⚠️/🚨) and report the result to the user along with the summary → then the gate. If not, skip this and go straight to the gate.
+
+🚪 **GATE 1**: "Are this problem definition, JTBD, and evidence right?" — do not enter Stage 2 until the user explicitly approves.
+
+---
+
+### Stage 2 — Scope & Success Criteria (scope, non-goals, success metrics)
+
+Based on Discovery, write:
+
+- **In scope** — what to build this time (a concrete feature list)
+- **Non-goals** — what will not be built this time (explicitly excluded)
+- **Success criteria** — measurable metrics (for example "conversion rate +X%", "user completes it within 30 seconds"). Targets the assistant proposes are `AI assumption` until the user confirms the value.
+- **MVP vs. Full** — separate the first-release scope from later phases (when relevant)
+
+⚠️ Non-goals are the key section — the safety valve against scope creep. If something obvious is missing from both lists, the assistant asks first: "This one is out of scope, right?"
+
+**When the user adds scope** ("let's add this too"): do not automatically push it to Non-goals. State its impact on schedule, complexity, and the goal (does it serve the JTBD or dilute it?), then let the user decide: add it, move it to Non-goals, or split it into a follow-up PRD.
+
+➕ (Optional) Checkpoint: if a review subagent is available, run a gate self-assessment → then the gate. If not, skip.
+
+🚪 **GATE 2**: "Can these non-goals really be left out, and are the success criteria measurable?" — do not enter Stage 3 until approved.
 
 ---
 
 ### Stage 3 — User Stories & Acceptance Criteria
 
-각 In Scope 항목을 다음 형식으로 분해:
+Break each in-scope item into:
 
-**유저스토리**:
+**User story**:
 ```text
-As a [사용자 역할]
-I want [원하는 행동]
-So that [얻고 싶은 가치]
+As a [user role]
+I want [desired action]
+So that [value gained]
 ```
 
-**수용 조건** (Given/When/Then):
+**Acceptance criteria** (Given/When/Then):
 ```text
-Given [전제 상황]
-When [트리거 행동]
-Then [기대 결과]
+Given [precondition]
+When [triggering action]
+Then [expected result]
 ```
 
-⚠️ 수용 조건은 **측정 가능·관찰 가능**해야 함. "잘 작동해야 한다" 같은 모호 표현 금지.
+⚠️ Acceptance criteria must be **measurable and observable**. No vague wording such as "it should work well".
 
-➕ (선택) 체크포인트: (리뷰 서브에이전트를 쓸 수 있으면) 게이트 자가평가 → 게이트로. 없으면 건너뜀
+➕ (Optional) Checkpoint: if a review subagent is available, run a gate self-assessment → then the gate. If not, skip.
 
-🚪 **GATE 3**: "수용 조건 진짜 다 측정 가능한가요?" — OK 받기 전까지 Stage 4 진입 금지.
+🚪 **GATE 3**: "Are all acceptance criteria really measurable?" — do not enter Stage 4 until approved.
 
 ---
 
-### Stage 4 — PRD 완본 저장 + 핸드오프
+### Stage 4 — Save the full PRD + handoff
 
-**12블록 PRD 작성**:
+**Write the 12-block PRD** (every claim carries an evidence label):
 
-1. **한 줄 요약** — 무엇을, 누구를 위해, 왜
-2. **문제·기회 + JTBD** — Stage 1 Discovery 요약 + JTBD 한 줄
-3. **타깃 사용자/페르소나** — 1차/2차 사용자 분리
-4. **성공 기준** — 측정 가능 지표 (Stage 2)
-5. **스코프(In)** — 만들 기능 (Stage 2)
-6. **Non-goals(Out)** — 안 만들 것 + 이유 (Stage 2)
-7. **유저스토리** — Stage 3
-8. **수용 조건** — Given/When/Then (Stage 3)
-9. **의존성·리스크** — 외부 의존(API·팀·법무·승인) + 4축 리스크:
-   - **가치 리스크**: 사용자가 안 쓸 가능성
-   - **사용성 리스크**: 써도 어렵게 느낄 가능성
-   - **기술 가능성 리스크**: 기술적으로 안 될 가능성
-   - **사업성 리스크**: 만들어도 사업/조직에 안 맞을 가능성
-   각 리스크별 완화책(mitigation) 1줄.
-10. **출시·롤백 계획** — 단계별 출시 순서(예: 본인 → 팀 → 전체), 롤백 트리거(예: "실패율 3건/주 초과 시 자동 중단"), 모니터링 위치(로그·대시보드).
-11. **측정·분석 계획** — 성공 기준을 어떻게 측정할지:
-    - 추적할 이벤트·로그·지표 이름 (예: `signup_completed`, `feature_activated`)
-    - 대시보드·로그 위치 (예: 분석 툴·로그 파이프라인)
-    - 리뷰 주기 (예: "출시 후 첫 주 매일, 이후 주간")
-12. **열린 질문** — 아직 답 안 정해진 것 (HOW 결정 시 다뤄야 할 것)
+1. **One-line summary** — what, for whom, and why
+2. **Problem/opportunity + JTBD** — Stage 1 Discovery summary + JTBD one-liner. Include "Discovery evidence" and, separately, "Hypotheses to validate"
+3. **Target users / personas** — separate primary and secondary users
+4. **Success criteria** — measurable metrics (Stage 2). Unconfirmed targets are labeled `AI assumption`
+5. **Scope (In)** — features to build (Stage 2)
+6. **Non-goals (Out)** — what will not be built, with reasons (Stage 2)
+7. **User stories** — Stage 3
+8. **Acceptance criteria** — Given/When/Then (Stage 3)
+9. **Dependencies & risks** — external dependencies (APIs, teams, legal, approvals) + 4 risk axes:
+   - **Value risk**: users may not use it
+   - **Usability risk**: users may find it hard even if they use it
+   - **Feasibility risk**: it may not be technically possible
+   - **Viability risk**: even if built, it may not fit the business or organization
+   One line of mitigation per risk.
+10. **Launch & rollback plan** — rollout order (for example: yourself → team → everyone), rollback triggers (for example "stop automatically if failures exceed 3 per week"), and where it is monitored (logs, dashboard). Unless the user confirmed them, launch criteria and rollback criteria are labeled `AI assumption`.
+11. **Measurement & analytics plan** — how the success criteria will be measured:
+    - Names of events, logs, or metrics to track (for example `signup_completed`, `feature_activated`)
+    - Dashboard or log location (for example an analytics tool or log pipeline)
+    - Review cadence (for example "daily in the first week after launch, weekly after that")
+12. **Open questions** — anything not decided yet (including what the HOW decisions must address)
 
-**저장 위치**: `prd/PRD-<slug>-YYYYMMDD.md`
-- `<slug>`: 영문 kebab-case (예: `notification-center`, `onboarding-v2`)
-- 날짜: 작성일 기준 YYYYMMDD
+**Save location**: `prd/PRD-<slug>-YYYYMMDD.md`
+- `<slug>`: English kebab-case (for example `notification-center`, `onboarding-v2`)
+- Date: the date the PRD is written, YYYYMMDD
 
-**동시 진행 (선택)**: (architecture·planning·design 단계용 에이전트·커맨드가 설치돼 있으면) 사용자가 원할 때 **병렬**로 호출해서 HOW + 디자인 초안 동시 산출. 없으면 이 단계는 건너뛰고 사용자에게 다음 단계를 텍스트로 제안.
+**In parallel (optional)**: if agents, skills, or commands for architecture, planning, or design actually exist in the environment, call them **in parallel** when the user wants, to produce a HOW and design draft at the same time. If none exist, do not pretend to call them — output a **handoff brief** only (see below).
 
-➕ (선택) 체크포인트: (리뷰 서브에이전트를 쓸 수 있으면) 게이트 자가평가 → 핸드오프 결정 보조. 없으면 건너뜀
-➕ Stage 4 PRD 완본 저장 직후: (리뷰 서브에이전트를 쓸 수 있으면) 깊은 검수 모드로 1회 호출 → 차원별 검수 리포트 → 핸드오프 결정 보조. 없으면 이 단계는 건너뜀
+➕ (Optional) Checkpoint: if a review subagent is available, run a gate self-assessment → helps the handoff decision. If not, skip.
+➕ Right after saving the full PRD: if a review subagent is available, call it once in deep-review mode → per-dimension review report → helps the handoff decision. If not, skip.
 
-🚪 **GATE 4**: 핸드오프 방향 선택 — 아래 A~E는 해당 단계(에이전트·커맨드)가 설치돼 있을 때만 호출. 없으면 호출 대신 사용자에게 다음 단계를 텍스트로 제안
-- A. 계획 단계 호출 (구현 단계 분해)
-- B. architecture 단계 호출 (시스템 설계)
-- C. architecture + planning 병렬 호출 후 비교
-- D. design 단계 호출 (PRD에 UI/화면이 있으면 디자인 시안 산출)
-- E. B+D 또는 C+D 병렬 (구조 + 디자인 동시)
-- F. 종료 (PRD만 보관, 구현은 나중에)
+🚪 **GATE 4**: Choose the handoff direction. Options A–E apply only when the corresponding agent, skill, or command actually exists in the environment; otherwise offer the handoff brief instead of calling anything.
+- A. Call the planning step (break implementation into steps)
+- B. Call the architecture step (system design)
+- C. Call architecture + planning in parallel and compare
+- D. Call the design step (design draft, if the PRD has UI or screens)
+- E. B+D or C+D in parallel (structure + design together)
+- F. Stop here (keep the PRD only; build later)
+
+**Handoff brief** (when no handoff tool exists, or when the user picks F and wants a brief): a short block the user can paste into any later step — PRD path, one-line summary, in-scope list, non-goals, the acceptance criteria that matter most for HOW, open questions, and the `AI assumption` items that most need confirmation. Keep the evidence labels as they are.
 
 ---
 
-## AI 기능 PRD 부록 (조건부 자동 첨부)
+## AI-feature PRD appendix (conditional)
 
-PRD 본문(특히 5·7번 블록)에 다음 키워드가 감지되면 12블록 뒤에 **AI 5블록 부록**을 자동으로 첨부한다:
+Attach the **5-block AI appendix** after the 12 blocks only when the product actually uses an LLM or ML model.
 
-- 키워드: LLM, GPT, Claude, 프롬프트, 에이전트, 자동화 발송, 분류·요약·번역, 추천, AI 생성, MCP, 챗봇
+- Words like "recommend", "automate", "classify", "summarize", "translate", "agent", or "chatbot" are a signal, not a trigger. On their own they do not trigger the appendix — the same feature can be rule-based.
+- When such a signal appears, confirm with the user (or from the material they gave): is an LLM or ML model actually used, and what role does it play (for example: generates text, classifies input, ranks items, extracts fields, decides an action)?
+- Distinguish **rule-based** (fixed rules, filters, templates, scheduled jobs — no model) from **model-based** (an LLM, ML model, or model behind an API such as GPT or Claude, including MCP tools that call a model). Attach the appendix only for model-based parts, and say which parts those are. If it is unclear, record it as an `Open question` and ask.
+- If the user says "this isn't an AI feature", skip the appendix.
 
-사용자가 "이건 AI 기능 아니야"라고 명시하면 부록 생략.
+### AI-A. Prompt Spec
 
-### AI-A. 프롬프트 명세 (Prompt Spec)
+- Write the system prompt and user prompt separately
+- List the input variables (for example `{user_query}`, `{previous_conversation}`, `{today_date}`)
+- Version (v1.0, v1.1, and so on — any change triggers regression checking)
 
-- 시스템 프롬프트 / 유저 프롬프트 분리 작성
-- 입력 변수 목록 (예: `{사용자_쿼리}`, `{이전_대화}`, `{오늘_날짜}`)
-- 버전 (v1.0 / v1.1 등 — 변경 시 회귀 검증 트리거)
+### AI-B. Safety / Alignment guardrails
 
-### AI-B. Safety / Alignment 가드레일
+- **Output policy per use case** — do not paste a one-size forbidden-output list. Define what this specific feature must never output, must flag, or must hand to a human, based on its users and domain (for example: a customer-support bot vs. an internal summarizer have different policies). Typical areas to consider: abusive language, sensitive data, statements about competitors, legal or medical advice — include only those that apply, with the reason.
+- Sensitive data handling (for example personal data, customer names, internal revenue — masking, no logging)
+- Model choice rationale (large vs. medium vs. small — cost, speed, and accuracy trade-offs)
 
-- 금지 출력 (예: 욕설·민감정보·경쟁사 비난·법률·의료 자문)
-- 민감 정보 처리 (예: 개인정보·고객명·내부 매출 — 마스킹·로깅 금지)
-- 모델 선택 근거 (대형 vs 중형 vs 소형 — 비용·속도·정확도 트레이드오프)
+### AI-C. Hallucination risk + fallback
 
-### AI-C. 환각 리스크 + 폴백
-
-- 환각 발생 시나리오 (예: 없는 URL·없는 함수명·없는 인물 인용)
-- 신뢰도 임계치 (예: 자체 검증 통과 못 한 출력은 사용자에 "확인 필요" 라벨링)
-- 결정론적 폴백 (예: AI 실패 시 미리 정의된 템플릿·"답변 불가" 메시지·이전 캐시)
+- Hallucination scenarios (for example non-existent URLs, non-existent function names, quotes from non-existent people)
+- **No self-reported confidence as probability** — a model's own statement of confidence is not a calibrated probability. Instead, write measurable acceptance criteria (for example "every cited URL resolves", "extracted fields match the source document in N of M eval cases", "output passes the schema validator") and say what happens when a check fails (for example the output is labeled "needs review" for the user)
+- Deterministic fallback (for example when the AI fails: a predefined template, a "can't answer" message, or the previous cached result)
 
 ### AI-D. Human-in-the-Loop (HITL) UX
 
-- 사용자가 AI 출력을 **편집·재생성·거절·승인**할 수 있는 흐름 설계
-- 좋은 사례: AI 초안 → 검수 에이전트 → 큐 → 사람 승인 게이트 → 발송 (4단계 HITL)
-- 자동 승인 게이트(완전 자동화) vs 명시 승인 게이트(승인 메일·체크박스) 중 선택
+- Design flows that let the user **edit, regenerate, reject, and approve** AI output
+- A good pattern: AI draft → review agent → queue → human approval gate → send (4-step HITL)
+- Choose between an automatic approval gate (full automation) and an explicit approval gate (approval email, checkbox)
 
-### AI-E. Eval Set + 회귀 검증
+### AI-E. Eval set + regression
 
-- 프롬프트·모델 변경 시 회귀 검증할 테스트 케이스 5~20개 (예상 입력 + 기대 출력 또는 합격 기준)
-- 좋은 사례: 회귀 테스트 스위트로 기준선 고정 (예: 통과 기준 PASS ≥ N / FAIL ≤ M)
-- 출시 후 정기 재실행 주기 (예: 프롬프트 수정 시·주 1회·cron으로 자동)
+- 5–20 test cases to re-check on prompt or model changes (expected input + expected output or pass criteria)
+- Mark each case's status: **Run** (actually executed, with the observed result and date) or **Not yet run** (only the expected result / pass criteria are defined). Never present a case as passed unless it was actually run.
+- A good pattern: pin a baseline with a regression suite (for example pass bar PASS ≥ N / FAIL ≤ M)
+- Re-run cadence after launch (for example on every prompt change, weekly, or automatically on a schedule)
 
 ---
 
-## 다른 워크플로와 경계
+## Boundaries with other workflows
 
-| 단계 | 도구 | 산출물 |
+| Stage | Tool | Output |
 |---|---|---|
-| **WHAT/WHY** | `/pm` (이 커맨드) | PRD (요구사항·스코프·수용조건) |
-| **HOW 전략** | 계획 단계 (planning) | 구현 단계·파일·트레이드오프 |
-| **HOW 구조** | architecture 단계 | 시스템 설계·아키텍처 |
-| **HOW 분기 비교** | multi-plan (설치돼 있으면. 없으면 건너뛰고 사용자에게 텍스트로 제안) | 여러 접근법 비교안 |
+| **WHAT/WHY** | `/pm` (this tool) | PRD (requirements, scope, acceptance criteria) |
+| **HOW — strategy** | Planning step | Implementation steps, files, trade-offs |
+| **HOW — structure** | Architecture step | System design, architecture |
+| **HOW — comparing approaches** | multi-plan (if installed; otherwise skip and suggest the next step in text) | Comparison of several approaches |
 
-`/pm`이 PRD를 만들면 그 PRD가 위 도구들의 입력으로 흘러간다.
-
----
-
-## 사용자 모드 처리
-
-- **"몰라"·"다음에"**: 둘~셋 질문 더 던져서 끌어내기. 그래도 안 답하면 "잠정 추정으로 메워둘게요" 라벨링 후 진행.
-- **"알아서 해줘"**: 어시스턴트 추정 전부 가정 라벨링(영어 "(assumption)" / 한국어 "(가정)"). 게이트는 그대로 유지 (확인은 받음).
-- **스코프 늘림 시도** ("이것도 넣자"): Stage 2 Non-goals로 빼고, 후속 PRD로 분리 제안.
-- **수정 요청**: 해당 게이트로 되돌아가서 다시 진행.
+The PRD produced by `/pm` is the input to the tools above — when they exist in the environment. Otherwise it travels as the handoff brief.
 
 ---
 
-## 발동 후 첫 멘트 템플릿
+## Handling user responses
+
+- **"I don't know" / "later"**: don't press. Record it as an `Open question` (or fill it with a clearly labeled `AI assumption` when the PRD needs a value to continue) and move on.
+- **"You decide"** about a point: fill it with an `AI assumption`. Gates stay in place (staged mode).
+- **"Just write the whole thing" / one-shot draft request**: switch to draft mode (see "Two modes").
+- **Scope additions** ("let's add this too"): state the impact on schedule, complexity, and the goal; let the user decide (add, Non-goals, or a follow-up PRD). Do not move it to Non-goals automatically.
+- **Revision requests**: go back to the relevant gate and continue from there.
+
+---
+
+## First message template
 
 ```text
-📋 /pm 시작 — PRD 4단계 게이트로 진행할게요.
+📋 Starting /pm — we'll build the PRD in 4 gated stages (say "draft mode" if you'd rather get a one-shot draft).
 
-먼저 Stage 1 (Discovery) 들어갑니다. 7개 질문 드릴게요:
-[질문 1~7]
+Stage 1 (Discovery). From what you wrote I have: [problem / users / constraints already given].
+A few things are still missing:
+[only the missing core questions, 1–3 of them]
 
-답변하시는 동안 백그라운드로:
-- 워크스페이스 비슷한 기능 코드 스캔
-- (해당 시) 외부 유사 사례 조사
-동시 진행할게요.
+While you answer, in the background I'll:
+- scan the workspace for similar features
+- (if relevant) look up similar external cases
 ```
 
-"답변하시는 동안 백그라운드로…" 문단은 서브에이전트를 쓸 수 있을 때만 포함한다. 없으면 이 문단은 빼고 질문만 던진다.
+Include the "While you answer, in the background…" paragraph only when subagents are available. Otherwise drop it and just ask the questions. Write the message in the user's language.
