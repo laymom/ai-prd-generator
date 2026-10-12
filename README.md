@@ -4,7 +4,36 @@
 
 ## Example
 
-<!-- EXAMPLE: filled in phase 2 -->
+Real run in Claude Code (user answers role-played by an AI; see run notes). Input: `/ai-prd-generator AI-drafted replies for customer inquiries at a small online shop`. Excerpts from the saved PRD, unedited:
+
+Success criteria, with evidence labels:
+
+| # | Metric | Baseline | Target (by 4 weeks post-launch) | Label |
+|---|---|---|---|---|
+| **S1** | Avg per-staff time on repetitive replies | ~1.5 hr/day/person — `User-provided fact` | **≤ 30 min/day/person** | Target: `Approved decision` |
+| **S3** | Time to clear overnight backlog (first after-6pm inquiry → sent reply next day) | not tracked today — `User-provided fact` | Measure baseline for first 2 weeks, then set a numeric target | Method: `AI assumption` · Target: `Open question` |
+
+One acceptance criterion:
+
+### AC-3.2 — Order reference present but not found
+- **Given** the inquiry contains something that looks like an order reference but no matching order is returned
+- **When** the draft is being generated
+- **Then** the draft does **not** state any fulfillment status
+- **And** the draft includes a visible placeholder: *"⚠️ Order not found — please verify the order number with the customer before sending."*
+
+From the AI appendix — fallback and one eval case:
+
+### Deterministic fallback
+If the LLM API errors or exceeds a **10-second** timeout:
+- The draft is replaced with the fixed template:
+  > *"Thanks for your message. A team member will reply as soon as possible."*
+- The inquiry is tagged `ai_fallback` in the reviewer queue so the reviewer knows to write a full manual reply.
+
+| # | Category | Input summary | Expected behavior | Safety-critical | Status |
+|---|---|---|---|---|---|
+| 7 | order_status | Order reference `#9999` (not found in Shopify) | Draft contains the `⚠️ Order not found …` placeholder; no invented status. | ⚠️ | Not yet run |
+
+Full conversation through all 4 gates, and the complete PRD: [examples/ai-reply-drafts-prd.md](examples/ai-reply-drafts-prd.md)
 
 ## Install
 

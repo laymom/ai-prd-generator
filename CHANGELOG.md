@@ -9,6 +9,7 @@
 - A "Hypotheses to validate" section, separate from Discovery evidence; synthetic persona output goes there
 - Draft mode: a one-shot PRD on request, with every unapproved choice labeled AI assumption
 - A handoff brief when no architecture, planning, or design tool exists in the environment
+- `examples/ai-reply-drafts-prd.md`: a real staged run in Claude Code 2.1.142 from a fresh project-level install (user answers role-played by an AI), with the full conversation and the saved PRD. The README Example section shows an excerpt
 
 ### Changed
 - The instructions are now in English; questions and the PRD follow the language the user writes in. The evidence label names stay in English in every language (a translation in parentheses is allowed), replacing the per-language "(assumption)" label
@@ -26,6 +27,6 @@
 - Install steps completed for macOS/Linux and Windows PowerShell, with the PRD save location; "Tested in Claude Code only" stated
 - Optional pm-skills install corrected to the `pm-product-discovery` plugin commands
 
-## 1.0.0 — 2026-06-19
+## 1.0.0 — 2026-06-20
 
 - Initial release: `/pm` slash command
