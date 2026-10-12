@@ -6,32 +6,30 @@
 
 Real run in Claude Code (user answers role-played by an AI; see run notes). Input: `/ai-prd-generator AI-drafted replies for customer inquiries at a small online shop`. Excerpts from the saved PRD, unedited:
 
+Header, saved before the last gate:
+
+- **Status**: Gates 1–3 approved; Gate 4 pending
+- **Owner**: TBD — `Open question`
+
 Success criteria, with evidence labels:
 
-| # | Metric | Baseline | Target (by 4 weeks post-launch) | Label |
-|---|---|---|---|---|
-| **S1** | Avg per-staff time on repetitive replies | ~1.5 hr/day/person — `User-provided fact` | **≤ 30 min/day/person** | Target: `Approved decision` |
-| **S3** | Time to clear overnight backlog (first after-6pm inquiry → sent reply next day) | not tracked today — `User-provided fact` | Measure baseline for first 2 weeks, then set a numeric target | Method: `AI assumption` · Target: `Open question` |
+| # | Metric | Target | Label |
+|---|---|---|---|
+| S1 | Daily minutes each person spends on the top 3 repetitive topics | **≤ 30 min/day** (down from 60–120) | `Approved decision` (target) + `User-provided fact` (current state) |
+| S2 | Median time from inquiry received → reply sent, 9am–6pm | **≤ 15 minutes** | `AI assumption` (user does not currently track; measurement method is an `Open question`) |
 
-One acceptance criterion:
+One acceptance criterion and its label line:
 
-### AC-3.2 — Order reference present but not found
-- **Given** the inquiry contains something that looks like an order reference but no matching order is returned
-- **When** the draft is being generated
-- **Then** the draft does **not** state any fulfillment status
-- **And** the draft includes a visible placeholder: *"⚠️ Order not found — please verify the order number with the customer before sending."*
+- **AC-3.2** — *Given* no matching Shopify order is found, *When* the topic is `order_status`, *Then* `status = "needs full review"`; the system must not fabricate an order status.
 
-From the AI appendix — fallback and one eval case:
+Labels: Shopify integration `Approved decision`; 60-s freshness `Approved decision`; order-matching rules `AI assumption`.
 
-### Deterministic fallback
-If the LLM API errors or exceeds a **10-second** timeout:
-- The draft is replaced with the fixed template:
-  > *"Thanks for your message. A team member will reply as soon as possible."*
-- The inquiry is tagged `ai_fallback` in the reviewer queue so the reviewer knows to write a full manual reply.
+From the AI appendix — how the topic classifier is gated:
 
-| # | Category | Input summary | Expected behavior | Safety-critical | Status |
-|---|---|---|---|---|---|
-| 7 | order_status | Order reference `#9999` (not found in Shopify) | Draft contains the `⚠️ Order not found …` placeholder; no invented status. | ⚠️ | Not yet run |
+**Classifier and thresholds** (per the skill's rule — never gate on self-reported confidence):
+- Topic classifier is **LLM-based**, prompted with an explicit label set `{shipping, returns, order_status, other}`.
+- Gating is done on **measured accuracy against the 20-case eval set** (AC-5.3: ≥ 90% at launch), not on the LLM's own confidence.
+- Re-measured on every prompt/model change (see AI-E).
 
 Full conversation through all 4 gates, and the complete PRD: [examples/ai-reply-drafts-prd.md](examples/ai-reply-drafts-prd.md)
 

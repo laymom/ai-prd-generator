@@ -32,7 +32,11 @@ Use these exact label names. Keep them in English even when the PRD is written i
 | `Open question` | Something not yet decided or not yet known |
 
 Rules:
-- An AI-proposed item becomes `Approved decision` only when the user explicitly confirmed that specific item. Approving a stage in general does not turn proposed numbers (metric targets, launch steps, rollback thresholds) into approved decisions — those stay `AI assumption` until the user confirms the value.
+- `User-provided fact` is only for what the user actually said. Do not use it for your restatement, rounding, or extension of their words (for example a per-person average the user never gave).
+- An AI-proposed item becomes `Approved decision` only when the user explicitly accepted that specific item. An item shown at a gate and approved there counts. Anything added or changed after that gate stays `AI assumption` until it is shown at a later gate and approved. Approving a stage in general does not turn items the user never saw (metric targets, launch steps, rollback thresholds, logging fields, review actions) into approved decisions.
+- Every number, threshold, timeout, pass rate, and rule in the PRD carries a label. User stories may share one label line per story.
+- Never write that a gate is approved before the user's answer arrives. A file saved before Gate 4 says which gates are approved so far (for example "Gates 1–3 approved; Gate 4 pending").
+- Owner, author, reviewer, and contact fields: only names the user gave. Otherwise write "TBD — `Open question`". Never fill them with an account name, email address, or anything else taken from the environment.
 - "Users will probably want this" is not evidence. Label it `AI assumption`.
 - `Synthetic persona response` is never placed under "Discovery evidence". It goes under "Hypotheses to validate", together with how it could be checked with real users.
 
@@ -167,6 +171,7 @@ Then [expected result]
 **Save location**: `prd/PRD-<slug>-YYYYMMDD.md`
 - `<slug>`: English kebab-case (for example `notification-center`, `onboarding-v2`)
 - Date: the date the PRD is written, YYYYMMDD
+- After saving, run the "Final check" (below) on the file and fix it before showing Gate 4.
 
 **In parallel (optional)**: if agents, skills, or commands for architecture, planning, or design actually exist in the environment, call them **in parallel** when the user wants, to produce a HOW and design draft at the same time. If none exist, do not pretend to call them — output a **handoff brief** only (see below).
 
@@ -210,6 +215,7 @@ Attach the **5-block AI appendix** after the 12 blocks only when the product act
 
 - Hallucination scenarios (for example non-existent URLs, non-existent function names, quotes from non-existent people)
 - **No self-reported confidence as probability** — a model's own statement of confidence is not a calibrated probability. Instead, write measurable acceptance criteria (for example "every cited URL resolves", "extracted fields match the source document in N of M eval cases", "output passes the schema validator") and say what happens when a check fails (for example the output is labeled "needs review" for the user)
+- **Classifiers and thresholds** — for each component that classifies, routes, or filters, state whether it is rule-based (keywords, regex, fixed rules) or model-based. Never gate on a model's self-reported confidence. Gate on a rule, or on a measured score that was calibrated on labeled examples, and say how it will be measured (for example "precision ≥ X on N labeled inquiries").
 - Deterministic fallback (for example when the AI fails: a predefined template, a "can't answer" message, or the previous cached result)
 
 ### AI-D. Human-in-the-Loop (HITL) UX
@@ -224,6 +230,19 @@ Attach the **5-block AI appendix** after the 12 blocks only when the product act
 - Mark each case's status: **Run** (actually executed, with the observed result and date) or **Not yet run** (only the expected result / pass criteria are defined). Never present a case as passed unless it was actually run.
 - A good pattern: pin a baseline with a regression suite (for example pass bar PASS ≥ N / FAIL ≤ M)
 - Re-run cadence after launch (for example on every prompt change, weekly, or automatically on a schedule)
+
+---
+
+## Final check — run on the finished PRD before sending
+
+Run this on the saved PRD before presenting it or Gate 4. Fix the file until every answer is "yes". Check what each sentence means; checking for specific words is not enough.
+
+1. Is every `User-provided fact` something the user actually said, not a figure or rule you derived from what they said?
+2. Was every `Approved decision` shown to the user as that specific item and approved by them? Is everything added or changed after its gate still labeled `AI assumption`?
+3. Does every sentence about approval match what the user has answered so far? Does nothing claim a gate is approved before the user's answer to that gate?
+4. Does every number, threshold, timeout, pass rate, and rule carry a label (one shared label line per user story is enough)?
+5. For every classifier, filter, or threshold: does the PRD say whether it is rule-based or model-based? Does no threshold depend on a model's self-reported confidence, and does each measured score say how it will be measured?
+6. Do owner, author, reviewer, and contact fields contain only names the user gave, with "TBD — `Open question`" everywhere else, and no account name or email address from the environment?
 
 ---
 
