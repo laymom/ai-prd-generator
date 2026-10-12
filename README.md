@@ -148,6 +148,8 @@ The AI appendix is added only after confirming that an LLM or ML model is actual
 
 ## Limits · cost · compatibility
 
+- **The final check reduces but does not eliminate label mistakes.** In a real run from a fresh install (see the example), a few numbers were still unlabeled, and one role was labeled `User-provided fact` although the user never said it. These are listed in the example's run notes. Check the labels before you rely on them.
+
 - **Tested in Claude Code only.** The skill installs via the standard skills format, so other agents that read that format can install it — but it has not been tested in them, and features such as background subagents or the AskUserQuestion tool may not exist there (the instructions fall back to plain conversation).
 - **The output is a draft for you to own.** Labels make the assistant's assumptions visible; they don't make them correct.
 - **Synthetic personas are not user research.** Their output stays labeled as hypotheses.

@@ -21,6 +21,7 @@
 - README reordered (who gets what, example, install, input, what happens, how it differs, limits, related tools, sources). The synthetic-focus-group link no longer describes simulated output as user evidence
 
 ### Fixed (found in a real run)
+- Final check now re-opens the saved PRD (the second run reported "Final-check pass" without re-reading it), traces each `User-provided fact` to a line the user wrote, and catches mixed `Approved decision` summaries. README Limits note the remaining risk
 - `Approved decision` was given to items the user approved only by approving a whole stage, or never saw. Now only items shown at a gate and approved count; anything added or changed after a gate stays `AI assumption`
 - `User-provided fact` was given to figures derived from the user's words. Now only what the user actually said
 - A PRD saved before Gate 4 said "All 4 gates approved". A gate is no longer described as approved before the user answers

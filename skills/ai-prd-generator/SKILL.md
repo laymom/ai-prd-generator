@@ -235,10 +235,10 @@ Attach the **5-block AI appendix** after the 12 blocks only when the product act
 
 ## Final check — run on the finished PRD before sending
 
-Run this on the saved PRD before presenting it or Gate 4. Fix the file until every answer is "yes". Check what each sentence means; checking for specific words is not enough.
+Run this on the saved PRD before presenting it or Gate 4: **open the saved file again and read it**, rather than relying on memory of what you wrote. Fix the file until every answer is "yes". Check what each sentence means; checking for specific words is not enough.
 
-1. Is every `User-provided fact` something the user actually said, not a figure or rule you derived from what they said?
-2. Was every `Approved decision` shown to the user as that specific item and approved by them? Is everything added or changed after its gate still labeled `AI assumption`?
+1. Can every `User-provided fact` be matched to a line the user actually wrote in this conversation, and not to a figure, role, or rule you derived from it? This includes statements about who owns or decides what.
+2. Was every `Approved decision` shown to the user as that specific item and approved by them? If a summary line is labeled `Approved decision`, does it leave out any part that is only an `AI assumption`? Is everything added or changed after its gate still labeled `AI assumption`?
 3. Does every sentence about approval match what the user has answered so far? Does nothing claim a gate is approved before the user's answer to that gate?
 4. Does every number, threshold, timeout, pass rate, and rule carry a label (one shared label line per user story is enough)?
 5. For every classifier, filter, or threshold: does the PRD say whether it is rule-based or model-based? Does no threshold depend on a model's self-reported confidence, and does each measured score say how it will be measured?
