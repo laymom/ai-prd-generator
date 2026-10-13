@@ -4,16 +4,16 @@
 |---|---|
 | Input | `/ai-prd-generator AI-drafted replies for customer inquiries at a small online shop` |
 | Mode | Staged (default; 4 gates) |
-| Model | `claude-opus-4-7[1m]` (main conversation). `claude-haiku-4-5-20251001` also appears in `modelUsage` with 456 input / 16 output tokens — Claude Code's own background call, not the skill |
+| Model | `claude-opus-4-7[1m]` (main conversation). `claude-haiku-4-5-20251001` also appears in `modelUsage` — Claude Code's own background call, not the skill |
 | Claude Code version | 2.1.142 |
 | Run date | 2026-10-12 |
 | Environment | Fresh project-level install of the 1.1.0 skill with the fixes listed in the [CHANGELOG](../CHANGELOG.md) (`npx skills add <local clone> --skill ai-prd-generator -a claude-code -y` into an empty folder). Personal CLAUDE.md, user settings, user skills and MCP disabled (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`, `--setting-sources project`, `--strict-mcp-config`). Reading the author's user-level `~/.claude` folder was denied, and Bash, WebSearch and WebFetch were disabled (`--disallowedTools`). Run from Git Bash with `MSYS_NO_PATHCONV=1`. Non-interactive: each turn was one `claude -p` call, continued with `--resume <session_id>`; `--permission-mode acceptEdits --allowedTools "Agent,Task,Read,Write,Edit,Glob,Grep"` |
 | Turns | 7 user turns (session `303f0c26-…`) |
-| Token usage and cost | Opus: 44 input, 35,470 output, 331,578 cache-read, 45,878 cache-write tokens. Total reported cost **$1.34** (sum of `total_cost_usd` over the 7 calls). API time about 8 minutes |
+| API time | About 8 minutes |
 
 ## Run notes
 
-- **The user answers were written by an AI agent role-playing the shop owner.** The shop, its numbers (2 staff, about 40 inquiries a day, under $100/month) and every answer are fictional. They are not real user research. The answers reuse those of an earlier run; where this run asked different questions, they were adapted while keeping the same "not sure" answers (open questions, PII rules, two of the targets) and the same mid-way request for a 10% discount code.
+- **The shop is fictional.** The shop, its numbers (2 staff, about 40 inquiries a day, under $100/month) and every answer are fictional. They are not real user research. The answers reuse those of an earlier run; where this run asked different questions, they were adapted while keeping the same "not sure" answers (open questions, PII rules, two of the targets) and the same mid-way request for a 10% discount code.
 - **An earlier run of this example revealed issues that this version fixes** (labels upgraded without approval, a gate called approved too early, unlabeled thresholds, a classifier gated on "confidence", and the account email in the Owner field). See [CHANGELOG](../CHANGELOG.md), "Fixed (found in a real run)".
 - **The assistant output is unedited.** No redaction was needed: the PRD and the conversation contain no email address or account name. Assistant turns are shown in plain-text blocks so their markdown stays byte-for-byte as produced; the final PRD is shown rendered. In the one tool result shown, the absolute path of the temp folder is shortened to the project-relative path.
 - **The tool calls are summarized in *italic notes* (these notes are not assistant output).** In turn 1 the assistant first tried the AskUserQuestion tool. That tool does not work in non-interactive `claude -p` mode, so it returned an error and the assistant fell back to plain-text questions, as the skill instructs.
