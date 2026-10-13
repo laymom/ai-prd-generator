@@ -1,37 +1,29 @@
-# AI PRD Generator
+# AI feature PRD generator for Claude Code — decide failure handling, human review, and evaluation before you build
 
-**Anyone with a product idea gets a PRD — problem, users, scope, non-goals, user stories, and testable acceptance criteria — built with them in 4 approval gates, with every claim labeled by where it came from, plus an AI-feature appendix when the product really uses an LLM or ML model.**
+**For people planning a feature that uses an LLM or ML model, before it goes to engineering.** You first get a short list of the decisions still open — what happens when the answer is wrong, who approves, how you'll know a prompt or model change is safe — each with options and who should decide. Then the PRD is built with you in 4 approval stages, so it records your choices instead of guessing them, and every claim is labeled by where it came from. Its AI appendix turns those decisions into requirements and acceptance criteria, because they cover the usual ways AI features go wrong after launch: confident but wrong output, review nobody owns, regressions nobody notices, and cost or response time above plan ([why](#why-these-ai-sections)).
 
 ## Example
 
-Real run in Claude Code (see run notes). Input: `/ai-prd-generator AI-drafted replies for customer inquiries at a small online shop`. Excerpts from the saved PRD, unedited:
+Real run in Claude Code, staged mode. Input: `/ai-prd-generator AI-drafted replies for customer inquiries at a small online shop` (the shop is fictional). Excerpts, unedited except where marked `[…]`:
 
-Header, saved before the last gate:
+```text
+## Decisions still open before this AI feature ships
+**1. What happens when the AI might fabricate an order, tracking link, or promise?**
+- *Why it matters for this AI feature*: LLMs invent plausible-looking order numbers, dates, and policies. A tired reviewer at the end of a 40-inquiry day can send a confident-looking lie.
+- Options (`AI assumption`): (a) The prompt is only allowed to use data pulled from Shopify; if it's missing, the draft says "insufficient data — write manually" […] (b) The draft shows every fact it used […] in a sidebar […] (c) Both (a) and (b).
+- Who decides: shop owner
+- Label: `Open question`
+**2. What customer data is sent to the LLM API?**  […]
+**3. Who can approve which reply — you, the part-timer, or both for anything?**  […]
+**4. Which cases must pass before a prompt or model change goes live?**  […]
+**5. Cost cap behavior and a response-time limit for the chat widget**  […]
+```
 
-- **Status**: Gates 1–3 approved; Gate 4 pending
-- **Owner**: TBD — `Open question`
+Four of the five were decided during the run (one by approving the assistant's pick after saying "you decide"). The fifth, which customer data is sent to the model, stayed open and is repeated at the top of the saved PRD. Decision 4 became this acceptance criterion:
 
-Success criteria, with evidence labels:
+> **AC-7.2** Given the eval set runs, When any pinned case fails its expected-output criteria (category correct, routing correct, no fabricated order facts for order-status cases, no owner-only keyword leaking into a staff-approvable draft), Then the deployment is **blocked**. **100% pass bar.** — `Approved decision`
 
-| # | Metric | Target | Label |
-|---|---|---|---|
-| S1 | Daily minutes each person spends on the top 3 repetitive topics | **≤ 30 min/day** (down from 60–120) | `Approved decision` (target) + `User-provided fact` (current state) |
-| S2 | Median time from inquiry received → reply sent, 9am–6pm | **≤ 15 minutes** | `AI assumption` (user does not currently track; measurement method is an `Open question`) |
-
-One acceptance criterion and its label line:
-
-- **AC-3.2** — *Given* no matching Shopify order is found, *When* the topic is `order_status`, *Then* `status = "needs full review"`; the system must not fabricate an order status.
-
-Labels: Shopify integration `Approved decision`; 60-s freshness `Approved decision`; order-matching rules `AI assumption`.
-
-From the AI appendix — how the topic classifier is gated:
-
-**Classifier and thresholds** (per the skill's rule — never gate on self-reported confidence):
-- Topic classifier is **LLM-based**, prompted with an explicit label set `{shipping, returns, order_status, other}`.
-- Gating is done on **measured accuracy against the 20-case eval set** (AC-5.3: ≥ 90% at launch), not on the LLM's own confidence.
-- Re-measured on every prompt/model change (see AI-E).
-
-Full conversation through all 4 gates, and the complete PRD: [examples/ai-reply-drafts-prd.md](examples/ai-reply-drafts-prd.md)
+Full conversation, the saved PRD, and a comparison with plain chat: [examples/ai-reply-drafts-prd.md](examples/ai-reply-drafts-prd.md)
 
 ## Install
 
@@ -99,59 +91,53 @@ Without them, that step is skipped and everything else works.
 
 Replace `/pm` with `/ai-prd-generator` if you installed the skill. Write in any language; the questions and the PRD follow the language you write in.
 
-## What happens
+## What you get
+
+1. **First: "Decisions still open before this AI feature ships"** — up to 5 items. Each has the decision, why it matters for an AI feature, 2–3 options, who should decide (a role), and a label. Things you already decided are left off. In staged mode it comes with the Stage 1 summary; in draft mode it is the first thing in the reply.
+2. **Then: the full PRD**, saved as a file, with the still-open decisions repeated at the top (and a "Decided during this run" line under them).
 
 ```text
 /pm <idea>
    │
-   ├─ Stage 1  Discovery — problem · users · why now · evidence · JTBD        🚪 gate
-   ├─ Stage 2  Scope — In-scope · Non-goals · measurable success criteria     🚪 gate
-   ├─ Stage 3  User stories + Given/When/Then acceptance criteria             🚪 gate
-   └─ Stage 4  Full 12-block PRD (+ AI appendix if a model is used) → handoff 🚪 gate
+   ├─ Stage 1  Discovery — problem · users · evidence · JTBD + "Decisions still open"   🚪 gate
+   ├─ Stage 2  Scope — In-scope · Non-goals · measurable success criteria               🚪 gate
+   ├─ Stage 3  User stories + Given/When/Then acceptance criteria                       🚪 gate
+   └─ Stage 4  Full 12-block PRD + AI appendix → handoff                                🚪 gate
 ```
 
-- **It asks only what's missing.** If your first message already names the problem, users, and constraints, it doesn't ask again — it asks a short batch of the missing core questions.
-- **"I don't know" is fine.** It doesn't press. The point becomes an `AI assumption` or an `Open question`.
-- **Scope additions are your call.** If you add a feature mid-way, it tells you the impact on schedule, complexity, and the goal, and you decide whether to add it, exclude it, or split it into a follow-up PRD.
-- **Handoff.** Architecture, planning, or design steps are called only if such skills or commands exist in your environment. Otherwise you get a short handoff brief to paste wherever you go next.
+- **Staged (default)** — it stops at each of the 4 gates and waits for your OK, so nothing is marked as decided until you decided it.
+- **Draft mode** — ask for a one-shot draft ("draft mode", "just write the whole PRD"). It starts with the open-decisions list, writes everything in one pass, labels every choice you haven't approved `AI assumption`, and ends with the assumptions that most need your confirmation.
+- **It asks only what's missing**, and "I don't know" is fine — the point becomes an `AI assumption` or an `Open question`. Mid-way scope additions get an impact note (schedule, complexity, goal) and you decide.
+- **Not an AI feature after all?** If no LLM or ML model is used, it says so and continues as a normal PRD without the AI appendix. Words like "recommend" or "automate" alone don't count as AI, because those features can be rule-based.
 
-### Two modes
+**The PRD's 12 blocks:** summary, problem + JTBD, users/personas, success criteria, scope, non-goals, user stories, acceptance criteria, dependencies and 4-axis risk, launch/rollback plan, measurement plan, open questions.
 
-- **Staged (default)** — it stops at each of the 4 gates and waits for your OK.
-- **Draft mode** — ask for a one-shot draft ("draft mode", "just write the whole PRD"). It skips the waits and writes everything in one pass; every choice you haven't approved is labeled `AI assumption`, and it ends with the assumptions that most need your confirmation.
+**The AI appendix (5 blocks):** prompt spec · safety (output policy for this use case, sensitive data, model choice) · hallucination + fallback · human-in-the-loop UX · eval set + regression. Each open decision lands in its block — as a requirement and acceptance criterion if you decided it, as an `Open question` with its options if not.
 
-### Evidence labels
+**Evidence labels** on every claim: `User-provided fact` · `Sourced fact` (with link) · `Real user research` · `AI assumption` · `Synthetic persona response` · `Approved decision` · `Open question`. A target the assistant proposed stays `AI assumption` until you approve that specific item.
 
-Every claim in the PRD carries one of these labels:
+## Why these AI sections
 
-`User-provided fact` · `Sourced fact` (with link) · `Real user research` · `AI assumption` · `Synthetic persona response` · `Approved decision` · `Open question`
+Design rationale: each AI section exists to block one way model-based features commonly go wrong. The sources below describe these risks; they are not evidence that this tool produces better products.
 
-Assumed success metrics, launch criteria, and rollback criteria stay `AI assumption` until you confirm them. Simulated persona output (for example from a synthetic focus group) goes under **Hypotheses to validate**, never under Discovery evidence.
+| Section | Gap it is meant to close | Source (what it says) |
+|---|---|---|
+| Hallucination + fallback (AI-C) | Output that is wrong but sounds confident, with no defined next step | NIST AI 600-1 defines confabulation as "the production of confidently stated but erroneous or false content (known colloquially as 'hallucinations' or 'fabrications')". Google's People + AI Guidebook: AI "will fail at some point", and "the product needs to provide ways for the user to continue their task"; when it fails, "often the easiest path forward is to let the user take over". |
+| Human-in-the-loop (AI-D) + "who should decide" | Review that nobody owns | NIST AI RMF 1.0, Map 3.5: "Processes for human oversight are defined, assessed, and documented". Govern 2.1: roles and responsibilities "are documented and are clear". |
+| Eval set + regression (AI-E) | A prompt or model change breaks things and nobody notices | NIST AI RMF 1.0, Measure 2.1: "Test sets, metrics, and details about the tools used during TEVV are documented". Manage 3.2: pre-trained models are "monitored as part of AI system regular monitoring". People + AI Guidebook on "background errors" that neither user nor system notices: "you'll need a dedicated quality assurance process". |
+| Safety — sensitive data (AI-B) | Customer data sent to or logged by a model provider without a decision | NIST AI RMF 1.0, Measure 2.10: "Privacy risk of the AI system … is examined and documented." |
+| Cost and response-time limits | Spend or latency above plan | Design choice of this tool; no external source cited. |
 
-### The 12 blocks and the AI appendix
+## Compared with plain chat
 
-The PRD covers: summary, problem + JTBD, users/personas, success criteria, scope, non-goals, user stories, acceptance criteria, dependencies and 4-axis risk, launch/rollback plan, measurement plan, and open questions.
+Same scenario, plain Claude Code with no skill, one prompt ([full output](examples/ai-reply-drafts-baseline-plain-chat.md)). Plain chat answered in about 40 seconds with a readable one-page PRD, and raised a few useful points the skill's PRD didn't (prompt caching to cut cost, whether to tell customers replies are AI-assisted, a link allowlist). It asked no questions, so it filled gaps with numbers you never gave ("baseline ~45 min", a $50/month cost target, "Owner: Shop operations") without marking them as guesses. It had no list of open decisions or who decides them, no Given/When/Then acceptance criteria, and no fixed eval set or pass bar for prompt or model changes, and it proposed showing a "confidence signal" on drafts — a model's self-reported confidence, which this tool does not use as a gate. The skill run took 7 turns and about 14 minutes of model time.
 
-The AI appendix is added only after confirming that an LLM or ML model is actually used and what it does. Words like "recommend", "automate", or "classify" alone don't trigger it, because those features can be rule-based. The 5 blocks:
-
-- **Prompt Spec** — system/user prompts, input variables, versioning
-- **Safety / Alignment** — an output policy defined for this use case (not a generic forbidden list), sensitive-data handling, model-choice rationale
-- **Hallucination + Fallback** — failure scenarios, measurable acceptance checks and what happens on failure (a model's self-reported confidence is not treated as a probability), deterministic fallback
-- **Human-in-the-Loop UX** — edit / regenerate / reject / approve flows
-- **Eval Set + Regression** — 5–20 cases, each marked as actually run or not yet run (expected result / pass criteria only)
-
-## How it differs
-
-- **From a one-prompt "write me a PRD":** the document is built through gates you approve (or a draft whose unapproved parts are labeled as such), Non-goals are a required section, and every claim says where it came from.
-- **From a generic PRD template:** the AI-feature appendix covers prompts, safety policy, hallucination fallback, human review, and evals — the parts that are easy to miss until after launch.
-- It covers WHAT and WHY only. HOW (architecture, implementation plan, design) is handed off.
-
-## Limits · cost · compatibility
+## Limits · compatibility
 
 - **Tested in Claude Code only.** The skill installs via the standard skills format, so other agents that read that format can install it — but it has not been tested in them, and features such as background subagents or the AskUserQuestion tool may not exist there (the instructions fall back to plain conversation).
-- **The output is a draft for you to own.** Labels make the assistant's assumptions visible; they don't make them correct.
+- **The output is a draft for you to own.** Labels make the assistant's assumptions visible; they don't make them correct. The open-decisions list is a starting set, not a complete risk review.
 - **Synthetic personas are not user research.** Their output stays labeled as hypotheses.
-- **Cost.** A staged run is a multi-turn conversation. Optional background research or review subagents, when available, use additional tokens.
+- **Length.** A staged run is a multi-turn conversation, and the full PRD is long. If you only need the open decisions, stop after Stage 1.
 - **Maintainers:** `commands/pm.md` and `skills/ai-prd-generator/SKILL.md` must have the same body. Run `node scripts/check-sync.js` (Node, no dependencies) after editing either; it exits 1 if they differ.
 
 ## Related tools
@@ -160,13 +146,16 @@ Small, independent tools by the same author. Use any of them on its own; none re
 
 - [multi-agent-brainstorm](https://github.com/laymom/multi-agent-brainstorm) — explore and compare ideas from 5 perspectives
 - [synthetic-focus-group](https://github.com/laymom/synthetic-focus-group) — explore reactions and risky assumptions with simulated personas
-- [ai-prd-generator](https://github.com/laymom/ai-prd-generator) — turn an idea into a PRD with scope and acceptance criteria
+- [ai-prd-generator](https://github.com/laymom/ai-prd-generator) — decide failure handling, human review, and evaluation for an AI feature, then write the PRD
 - [consulting-ux-strategy](https://github.com/laymom/consulting-ux-strategy) — audit flows, information architecture, and usability, then prioritize fixes
 
 When passing output between them, keep the evidence labels (User-provided fact, Sourced fact, Real user research, AI assumption, Synthetic persona response, Approved decision, Open question). Simulated persona responses stay labeled as synthetic in every downstream document.
 
 ## Sources · license · changelog
 
+- NIST, *Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile* (NIST AI 600-1, July 2024) — https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf (section 2.2, Confabulation)
+- NIST, *AI Risk Management Framework 1.0* (2023), Section 5, AI RMF Core — https://airc.nist.gov/airmf-resources/airmf/5-sec-core/ (Govern 2.1, Map 3.5, Measure 2.1, Measure 2.10, Manage 3.2)
+- Google PAIR, *People + AI Guidebook*, chapter "Errors + Graceful Failure" — https://pair.withgoogle.com/chapter/errors-failing/
 - Jobs-to-be-Done, Given/When/Then acceptance criteria, and the four product risks (value, usability, feasibility, viability) are widely used product-management practices; this tool applies them as a checklist.
 - The optional discovery skills are by Paweł Huryn — [phuryn/pm-skills](https://github.com/phuryn/pm-skills) (MIT). They are linked, not redistributed here.
 
@@ -174,6 +163,7 @@ When passing output between them, keep the evidence labels (User-provided fact, 
 skills/ai-prd-generator/SKILL.md   # skill format (npx skills add) → /ai-prd-generator
 commands/pm.md                     # slash command → /pm — same body
 scripts/check-sync.js              # checks the two bodies match
+examples/                          # a real run and a plain-chat baseline
 ```
 
 MIT — see [LICENSE](LICENSE). Covers this tool only. Changes are listed in [CHANGELOG.md](CHANGELOG.md).

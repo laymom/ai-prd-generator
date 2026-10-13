@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.2.0 — 2026-10-13
+
+Positioning: a PRD tool for people planning an **AI feature**, so the failure handling, human review, and evaluation criteria are decided before engineering starts. It still works as a normal PRD tool when no model is used.
+
+### Added
+- **"Decisions still open before this AI feature ships"** — the new first output. Up to 5 items, each with the decision, why it matters for an AI feature, 2–3 options (`AI assumption`), who should decide (a role), and the `Open question` label. It checks failure handling, human review, evaluation, sensitive data, and cost/response-time limits first, and leaves off anything the user already decided. Shown with the Stage 1 summary (staged mode) or at the start of the reply (draft mode), and repeated at the top of the saved PRD with a "Decided during this run" line
+- The AI appendix now says where each decision lands (failure handling → AI-C, human review → AI-D, evaluation → AI-E, sensitive data → AI-B): as a requirement and acceptance criterion if decided, as an `Open question` with its options if not
+- Final check questions 7–8: the list is at the top of the PRD, has at most 5 items, each item has all five parts, nothing on it is labeled `Approved decision`, and every "Decided during this run" entry traces to a user reply
+- `examples/ai-reply-drafts-baseline-plain-chat.md`: the same scenario in plain Claude Code without the skill, and a "Compared with plain chat" section in the example
+
+### Changed
+- Title, descriptions, and README are AI-first: "AI feature PRD generator for Claude Code — decide failure handling, human review, and evaluation before you build". The README explains each AI section by the gap it is meant to close, citing NIST AI 600-1, the NIST AI RMF 1.0 Core, and Google's People + AI Guidebook, and says this is design rationale, not proof of better products
+- If a feature turns out not to use a model, the tool says so, skips the AI appendix, and keeps only the non-AI open decisions
+- `examples/ai-reply-drafts-prd.md` replaced with a new real staged run of 1.2.0 (Claude Code 2.1.142)
+
+### Fixed (found in a real run of 1.2.0 before release)
+- The final check was reported as done without re-reading the saved file. It now requires reading the file with the file-reading tool, and says "done from memory" if that is not possible
+- In the conversation, the assistant wrote "your stated 2–3 min baseline" and labeled a tool name the user never mentioned as `User-provided fact`. The label rules now apply to the conversation too, and "you said" / "your stated" is only used for what the user said
+- Mixed labels such as "`AI assumption` (confirmed at Gate 3)" are no longer allowed: an item the user approved is `Approved decision`, otherwise `AI assumption`
+- A "you decide" answer on an open decision is now recorded as the assistant's `AI assumption`, and becomes `Approved decision` only if that pick is later shown and approved
+- Long PRDs are written in parts instead of one very large write
+
 ## 1.1.0 — 2026-10-12
 
 ### Added

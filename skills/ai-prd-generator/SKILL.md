@@ -1,11 +1,13 @@
 ---
 name: ai-prd-generator
-description: Turn a vague product idea into a PRD (product requirements document) with problem, users, scope, non-goals, user stories, and Given/When/Then acceptance criteria, through 4 user-approved stages or a one-shot draft on request. Every claim carries an evidence label. Adds an appendix for AI features (prompt spec, safety, hallucination fallback, human-in-the-loop, eval set) only when an LLM or ML model is actually used. Use when the user wants to write a PRD, define product requirements, pin down scope and non-goals, or turn an idea into user stories and acceptance criteria.
+description: PRD generator for AI features (LLM or ML). Before an AI feature goes to engineering, lists the decisions still open - failure handling, human review, evaluation - then builds a PRD with problem, users, scope, non-goals, user stories, and Given/When/Then acceptance criteria through 4 user-approved stages (or a one-shot draft on request), plus an AI appendix (prompt spec, safety, hallucination fallback, human-in-the-loop, eval set). Every claim carries an evidence label. Works as a normal PRD tool when no model is used. Use when the user wants a PRD or requirements for an AI or LLM feature, or any product idea turned into scope, user stories, and acceptance criteria.
 ---
 
-# /pm — AI-Aware PRD Generator
+# /pm — AI Feature PRD Generator
 
-Turn a vague idea into a **PRD focused on WHAT and WHY** (problem, users, scope, non-goals, user stories, acceptance criteria). HOW (architecture, implementation planning, design) is handed off to later steps.
+For people planning a feature that uses an LLM or ML model: before it is handed to engineering, make sure the failure handling, human review, and evaluation criteria are decided. The tool produces a **PRD focused on WHAT and WHY** (problem, users, scope, non-goals, user stories, acceptance criteria) plus an AI appendix, and starts with a short list of the decisions that are still open. HOW (architecture, implementation planning, design) is handed off to later steps.
+
+If the feature turns out not to use a model, say so plainly and continue as a normal PRD without the AI appendix.
 
 Write questions and the PRD in the language the user writes in.
 
@@ -36,14 +38,36 @@ Rules:
 - An AI-proposed item becomes `Approved decision` only when the user explicitly accepted that specific item. An item shown at a gate and approved there counts. Anything added or changed after that gate stays `AI assumption` until it is shown at a later gate and approved. Approving a stage in general does not turn items the user never saw (metric targets, launch steps, rollback thresholds, logging fields, review actions) into approved decisions.
 - Every number, threshold, timeout, pass rate, and rule in the PRD carries a label. User stories may share one label line per story.
 - Never write that a gate is approved before the user's answer arrives. A file saved before Gate 4 says which gates are approved so far (for example "Gates 1–3 approved; Gate 4 pending").
+- These rules apply to the conversation too, not only the saved file. Never write "you said", "your stated", or "as you mentioned" about a number, tool, or detail the user did not actually give. In a stage summary, a detail you added (for example the name of the tool they use today) is an `AI assumption`, even if it sits next to things the user said.
+- One item, one label. Do not write "`AI assumption` (confirmed at Gate 3)": if the user approved that specific item, it is `Approved decision`; if not, it is `AI assumption`.
 - Owner, author, reviewer, and contact fields: only names the user gave. Otherwise write "TBD — `Open question`". Never fill them with an account name, email address, or anything else taken from the environment.
 - "Users will probably want this" is not evidence. Label it `AI assumption`.
 - `Synthetic persona response` is never placed under "Discovery evidence". It goes under "Hypotheses to validate", together with how it could be checked with real users.
 
+## Decisions still open before this AI feature ships
+
+This short list is the first thing the user gets, before the full PRD. It names the decisions that, if left open, an engineer would end up making alone — or nobody makes until something goes wrong in production.
+
+- **Up to 5 items.** Fewer is fine. Order by how much the feature depends on the decision.
+- **Each item has 5 parts:**
+  1. **Decision** — one line, phrased as a choice (for example "What happens when the draft cites an order that doesn't exist?")
+  2. **Why it matters for this AI feature** — one line, tied to how model-based features fail (output that is wrong but sounds confident; no named person who reviews or approves; no eval set, so a prompt or model change breaks things unnoticed; cost or response time higher than planned; sensitive data sent to or logged by the model provider)
+  3. **Options** — 2–3 concrete options, each a few words, labeled `AI assumption` (they are the assistant's proposals)
+  4. **Who should decide** — a role (for example "shop owner", "support lead", "legal") — never a person's name or email unless the user gave it
+  5. **Label** — `Open question` for the decision itself
+- **What goes on the list:** check these first — failure handling and fallback, human review (who reviews, what they can do, whether anything ever sends without them), evaluation (which cases, what pass bar, who re-runs it when the prompt or model changes), sensitive data, and cost or response-time limits. Include only those the user has not already decided, plus anything specific to this feature that blocks engineering. Do not pad the list to 5.
+- **Do not decide for the user.** An item the user already decided is not an open decision — leave it off. Never label anything on the list `Approved decision`; when the user picks an option, it leaves the list and becomes an `Approved decision` in the PRD. When the user says "you decide" about an item, it also leaves the list, but your pick is an `AI assumption` ("filled by the assistant"); it becomes `Approved decision` only if you later show that specific pick at a gate and the user approves it.
+- **If model use is still unclear**, the first item is "Is an LLM or ML model actually used, and for what?" If the user confirms no model is used, say so ("This isn't an AI feature, so the AI appendix is skipped"), retitle the list "Decisions still open before this feature ships", and keep only the non-AI decisions.
+
+**When it appears:**
+- Staged mode: at the top of the Stage 1 Discovery summary, before Gate 1. At later gates, show it again only if it changed (an item decided, a new one found), in one or two lines.
+- Draft mode: as the first block of the response, before the full PRD.
+- Final PRD: at the top of the file, after the status header and before block 1, showing the items still open at that point. Items decided during the run are listed in one line under it ("Decided during this run: …"), each with its label.
+
 ## Two modes
 
 - **Staged mode (default)** — the 4 gates below. Wait for explicit approval at each gate.
-- **Draft mode** — use only when the user explicitly asks for a one-shot draft (for example "just write the whole PRD", "give me a full draft", "do it all yourself"). Skip the gate waits and produce all 4 stages in one pass, then save the PRD. Every choice the user has not approved is labeled `AI assumption`, and every unknown is listed as an `Open question`. At the end, list the assumptions that most need the user's confirmation. The user can switch back to staged mode at any time.
+- **Draft mode** — use only when the user explicitly asks for a one-shot draft (for example "just write the whole PRD", "give me a full draft", "do it all yourself"). Skip the gate waits and produce all 4 stages in one pass, then save the PRD. Start the response with the "Decisions still open" list. Every choice the user has not approved is labeled `AI assumption`, and every unknown is listed as an `Open question`. At the end, list the assumptions that most need the user's confirmation. The user can switch back to staged mode at any time.
 - "You decide" about a single point does not switch modes: fill that point with an `AI assumption` and keep the gates.
 
 ---
@@ -90,7 +114,7 @@ Problem, target users, and constraints are the core items. Items 3–7 can be fi
 
   📌 These 3 helper skills are from [phuryn/pm-skills](https://github.com/phuryn/pm-skills) (MIT License, Paweł Huryn). They are **separate** from this tool. All 3 are in that repo's `pm-product-discovery` plugin and connect once installed with the Claude Code commands from its README (`claude plugin marketplace add phuryn/pm-skills` → `claude plugin install pm-product-discovery@pm-skills`). If they are not installed, skip this step.
 
-Combine the user's answers, subagent results, and the outputs above → output a **one-page Discovery summary**, with labels.
+Combine the user's answers, subagent results, and the outputs above → output a **one-page Discovery summary**, with labels. Put the **"Decisions still open before this AI feature ships"** list at the top of it (see that section).
 
 ➕ (Optional) Checkpoint: if a review subagent is available, run a gate self-assessment (✅/⚠️/🚨) and report the result to the user along with the summary → then the gate. If not, skip this and go straight to the gate.
 
@@ -145,7 +169,7 @@ Then [expected result]
 
 ### Stage 4 — Save the full PRD + handoff
 
-**Write the 12-block PRD** (every claim carries an evidence label):
+**Write the 12-block PRD** (every claim carries an evidence label). At the top of the file, after the status header and before block 1, repeat the **"Decisions still open before this AI feature ships"** list as it stands now, with the "Decided during this run" line under it.
 
 1. **One-line summary** — what, for whom, and why
 2. **Problem/opportunity + JTBD** — Stage 1 Discovery summary + JTBD one-liner. Include "Discovery evidence" and, separately, "Hypotheses to validate"
@@ -171,7 +195,7 @@ Then [expected result]
 **Save location**: `prd/PRD-<slug>-YYYYMMDD.md`
 - `<slug>`: English kebab-case (for example `notification-center`, `onboarding-v2`)
 - Date: the date the PRD is written, YYYYMMDD
-- After saving, run the "Final check" (below) on the file and fix it before showing Gate 4.
+- After saving, run the "Final check" (below) on the file and fix it before showing Gate 4. For a long PRD, write it in parts (for example blocks 1–6, then 7–12, then the appendix) rather than in one very large write.
 
 **In parallel (optional)**: if agents, skills, or commands for architecture, planning, or design actually exist in the environment, call them **in parallel** when the user wants, to produce a HOW and design draft at the same time. If none exist, do not pretend to call them — output a **handoff brief** only (see below).
 
@@ -198,6 +222,7 @@ Attach the **5-block AI appendix** after the 12 blocks only when the product act
 - When such a signal appears, confirm with the user (or from the material they gave): is an LLM or ML model actually used, and what role does it play (for example: generates text, classifies input, ranks items, extracts fields, decides an action)?
 - Distinguish **rule-based** (fixed rules, filters, templates, scheduled jobs — no model) from **model-based** (an LLM, ML model, or model behind an API such as GPT or Claude, including MCP tools that call a model). Attach the appendix only for model-based parts, and say which parts those are. If it is unclear, record it as an `Open question` and ask.
 - If the user says "this isn't an AI feature", skip the appendix.
+- The appendix is where the "Decisions still open" items land: each one the user decided becomes a requirement or a Given/When/Then acceptance criterion in the matching block (failure handling → AI-C, human review → AI-D, evaluation → AI-E, sensitive data → AI-B). Each one still undecided stays in that block as an `Open question` with its options.
 
 ### AI-A. Prompt Spec
 
@@ -235,7 +260,7 @@ Attach the **5-block AI appendix** after the 12 blocks only when the product act
 
 ## Final check — run on the finished PRD before sending
 
-Run this on the saved PRD before presenting it or Gate 4: **open the saved file again and read it**, rather than relying on memory of what you wrote. Fix the file until every answer is "yes". Check what each sentence means; checking for specific words is not enough.
+Run this on the saved PRD before presenting it or Gate 4: **open the saved file again with the file-reading tool (for example Read) and read it**, rather than relying on memory of what you wrote. A check done without re-reading the file does not count: do not report "final check passed" unless you read the saved file in this step. If you cannot read files, say that the check was done from memory. Fix the file until every answer is "yes". Check what each sentence means; checking for specific words is not enough.
 
 1. Can every `User-provided fact` be matched to a line the user actually wrote in this conversation, and not to a figure, role, or rule you derived from it? This includes statements about who owns or decides what.
 2. Was every `Approved decision` shown to the user as that specific item and approved by them? If a summary line is labeled `Approved decision`, does it leave out any part that is only an `AI assumption`? Is everything added or changed after its gate still labeled `AI assumption`?
@@ -243,6 +268,8 @@ Run this on the saved PRD before presenting it or Gate 4: **open the saved file 
 4. Does every number, threshold, timeout, pass rate, and rule carry a label (one shared label line per user story is enough)?
 5. For every classifier, filter, or threshold: does the PRD say whether it is rule-based or model-based? Does no threshold depend on a model's self-reported confidence, and does each measured score say how it will be measured?
 6. Do owner, author, reviewer, and contact fields contain only names the user gave, with "TBD — `Open question`" everywhere else, and no account name or email address from the environment?
+7. Is the "Decisions still open" list at the top of the PRD, with at most 5 items, and does each item have the decision, why it matters for this AI feature, options, who should decide (a role or a name the user gave), and a label?
+8. Is every item on that list something the user has not decided yet? Is nothing on it labeled `Approved decision`, and is every entry under "Decided during this run" traceable to a line where the user chose it or approved that specific pick?
 
 ---
 
@@ -273,10 +300,11 @@ The PRD produced by `/pm` is the input to the tools above — when they exist in
 
 ```text
 📋 Starting /pm — we'll build the PRD in 4 gated stages (say "draft mode" if you'd rather get a one-shot draft).
+After this step you'll get a short list of the decisions still open before this feature ships (failure handling, human review, evaluation, and so on), then the full PRD.
 
 Stage 1 (Discovery). From what you wrote I have: [problem / users / constraints already given].
 A few things are still missing:
-[only the missing core questions, 1–3 of them]
+[only the missing core questions, 1–3 of them; if it is unclear whether a model is used, ask that]
 
 While you answer, in the background I'll:
 - scan the workspace for similar features
