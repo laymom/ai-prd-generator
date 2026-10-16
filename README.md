@@ -1,6 +1,6 @@
 # AI feature PRD generator for Claude Code — decide failure handling, human review, and evaluation before you build
 
-**For people planning a feature that uses an LLM or ML model, before it goes to engineering.** You first get a short list of the decisions still open. They include what happens when the answer is wrong and who approves. They also include how you'll know a prompt or model change is safe. Each decision comes with options and who should decide. Then the PRD is built with you in 4 approval stages. So it records your choices instead of guessing them. Every claim is labeled by where it came from. Its AI appendix turns those decisions into requirements and acceptance criteria. This matters because those decisions cover the usual ways AI features go wrong after launch. Those are confident but wrong output, review nobody owns, regressions nobody notices, and cost or response time above plan ([why](#why-these-ai-sections)).
+**For people planning a feature that uses an LLM or ML model, before it goes to engineering.** First you get the decisions still open: what happens when the answer is wrong, who approves, and how you'll know a change is safe. Then the PRD is built with you in 4 approval stages, so it records your choices instead of guessing them. Its AI appendix turns those decisions into requirements and acceptance criteria ([why](#why-these-ai-sections)).
 
 ## Example
 
