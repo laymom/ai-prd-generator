@@ -1,6 +1,6 @@
 # AI feature PRD generator for Claude Code — decide failure handling, human review, and evaluation before you build
 
-**For people planning a feature that uses an LLM or ML model, before it goes to engineering.** You first get a short list of the decisions still open — what happens when the answer is wrong, who approves, how you'll know a prompt or model change is safe — each with options and who should decide. Then the PRD is built with you in 4 approval stages, so it records your choices instead of guessing them, and every claim is labeled by where it came from. Its AI appendix turns those decisions into requirements and acceptance criteria, because they cover the usual ways AI features go wrong after launch: confident but wrong output, review nobody owns, regressions nobody notices, and cost or response time above plan ([why](#why-these-ai-sections)).
+**For people planning a feature that uses an LLM or ML model, before it goes to engineering.** You first get a short list of the decisions still open. They include what happens when the answer is wrong and who approves. They also include how you'll know a prompt or model change is safe. Each decision comes with options and who should decide. Then the PRD is built with you in 4 approval stages. So it records your choices instead of guessing them. Every claim is labeled by where it came from. Its AI appendix turns those decisions into requirements and acceptance criteria. This matters because those decisions cover the usual ways AI features go wrong after launch. Those are confident but wrong output, review nobody owns, regressions nobody notices, and cost or response time above plan ([why](#why-these-ai-sections)).
 
 ## Example
 
@@ -72,17 +72,6 @@ Copy-Item ai-prd-generator\commands\pm.md "$HOME\.claude\commands\"
 
 First run: start a new Claude Code session and type `/ai-prd-generator` (skill) or `/pm` (command), optionally followed by a one-line idea. The finished PRD is saved to `prd/PRD-<slug>-YYYYMMDD.md` in your current working directory.
 
-### Optional: Stage 1 discovery skills
-
-Stage 1 can use three discovery skills (Opportunity Solution Tree, assumption identification, assumption prioritization). They are **a separate project** — [phuryn/pm-skills](https://github.com/phuryn/pm-skills) (MIT License, Paweł Huryn), in its `pm-product-discovery` plugin. To install with the Claude Code CLI (commands from the pm-skills README):
-
-```bash
-claude plugin marketplace add phuryn/pm-skills
-claude plugin install pm-product-discovery@pm-skills
-```
-
-Without them, that step is skipped and everything else works.
-
 ## Copy-paste input
 
 ```text
@@ -138,7 +127,20 @@ Same scenario, plain Claude Code with no skill, one prompt ([full output](exampl
 - **The output is a draft for you to own.** Labels make the assistant's assumptions visible; they don't make them correct. The open-decisions list is a starting set, not a complete risk review.
 - **Synthetic personas are not user research.** Their output stays labeled as hypotheses.
 - **Length.** A staged run is a multi-turn conversation, and the full PRD is long. If you only need the open decisions, stop after Stage 1.
-- **Maintainers:** `commands/pm.md` and `skills/ai-prd-generator/SKILL.md` must have the same body. Run `node scripts/check-sync.js` (Node, no dependencies) after editing either; it exits 1 if they differ.
+- **Maintainers:** `commands/pm.md` and `skills/ai-prd-generator/SKILL.md` must have the same body. Run `node scripts/check-sync.js` (Node, no dependencies) after editing either; it exits 1 if they differ. CI fails if the skill and command bodies drift.
+
+## Optional: extra discovery skills (third-party)
+
+`/pm` works fully without these. Nothing above needs them.
+
+If they are installed, Stage 1 can also use three discovery skills: Opportunity Solution Tree, assumption identification, and assumption prioritization. They are **a separate project** by another author: [phuryn/pm-skills](https://github.com/phuryn/pm-skills) (MIT License, Paweł Huryn), in its `pm-product-discovery` plugin. To install them with the Claude Code CLI (commands from the pm-skills README):
+
+```bash
+claude plugin marketplace add phuryn/pm-skills
+claude plugin install pm-product-discovery@pm-skills
+```
+
+Without them, that one helper step is skipped and everything else works the same.
 
 ## Related tools
 
@@ -163,6 +165,7 @@ When passing output between them, keep the evidence labels (User-provided fact, 
 skills/ai-prd-generator/SKILL.md   # skill format (npx skills add) → /ai-prd-generator
 commands/pm.md                     # slash command → /pm — same body
 scripts/check-sync.js              # checks the two bodies match
+.github/workflows/check-sync.yml   # runs check-sync.js on every push and pull request
 examples/                          # a real run and a plain-chat baseline
 ```
 
